@@ -1,0 +1,19 @@
+{
+  "name": "strava-app-backend",
+  "version": "1.0.0",
+  "description": "The NodeJS backend server for the strava dashboard",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stevej763/strava-app-backend.git"
+  },
+  "author": "Steve J",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/stevej763/strava-app-backend/issues"
+  },
+  "homepage": "https://github.com/stevej763/strava-app-backend#readme"
+}
