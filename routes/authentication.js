@@ -8,6 +8,10 @@ const { v4: uuid } = require('uuid');
 const stravaAuthUrl = `https://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=${process.env.WEBSERVER}:${process.env.PORT}/api/authentication/strava-auth-response&approval_prompt=force&scope=read_all,activity:read_all,profile:read_all`
 
 
+router.get('/login/:hello', (req, res) => {
+    res.send("This will check your session ID for an existing account")
+})
+
 router.get('/login', (req, res) => {
     res.redirect(stravaAuthUrl)
 })
@@ -15,25 +19,23 @@ router.get('/login', (req, res) => {
 router.get('/strava-auth-response', async (req, res) => {
     scope = req.query.scope
     authCode = req.query.code
-    let response;
     if (recievedExpectedScope(scope)) {
         accessToken = await exchangeAuthTokenForAccess(authCode)
         if (accessToken !== null) {
-            response = uuid()
+            response = `Session ID to save ${uuid()}`;
         }
     } else {
-        response = "Scope for app was not given"
+        response = "Scope for app was not given";
     }
-    res.send(response)
+    res.send(response);
 })
-
 
 const recievedExpectedScope = (scope) => {
     result = false
     if (scope == 'read,activity:read_all,profile:read_all,read_all') {
         result = true;
     }
-    return result
+    return result;
 }
 
 const exchangeAuthTokenForAccess = async (authCode) => {
@@ -48,12 +50,11 @@ const exchangeAuthTokenForAccess = async (authCode) => {
                 grant_type: 'authorization_code'
             }
         });
-        console.log(response.data)
-        return response.data.access_token
+        console.log(response.data);
+        return response.data.access_token;
     } catch (error) {
-        return error
-    }
-
+        return error;
+    };
 }
 
 module.exports = router
