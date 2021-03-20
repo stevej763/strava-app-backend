@@ -3,9 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
-const {
-    v4: uuid
-} = require('uuid');
+const uuid = require('uuid').v4;
 const mongo = require('../MongoAccess/MongoConnection');
 
 const stravaAuthUrl = `https://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=${process.env.WEBSERVER}:${process.env.PORT}/api/authentication/strava-auth-response&approval_prompt=force&scope=read_all,activity:read_all,profile:read_all`
@@ -16,9 +14,9 @@ router.get('/login/:sessionId', async (req, res) => {
     let athleteId = await loadUserSession(recievedSessionId);
     let athleteData = await loadUserData(athleteId);
     await checkAccessToken(athleteData)
-    if (athleteData == 303) {
+    if (athleteData == process.env.NO_SESSION_ERROR) {
         res.redirect(stravaAuthUrl)
-    }else {
+    } else {
         res.send(athleteData)
     }
 })
@@ -33,10 +31,13 @@ router.get('/strava-auth-response', async (req, res) => {
     if (recievedExpectedScope(scope)) {
         let athleteData = await exchangeAuthTokenForAccess(authCode)
         let savedSessionId = await saveUserSession(athleteData);
-        let savedAthleteData = await saveUserData(athleteData)
-        res.send([
-            {savedSessionId},
-            {savedUserData: savedAthleteData}
+        let savedAthleteData = await saveAthleteData(athleteData)
+        res.send([{
+                savedSessionId
+            },
+            {
+                savedAthleteData: savedAthleteData
+            }
         ])
 
     } else {
@@ -53,16 +54,19 @@ const recievedExpectedScope = (scope) => {
 }
 
 const checkAccessToken = async (athleteData) => {
-    let expiryTime = new Date(athleteData.expires_at*1000);
-    let refreshToken = athleteData.refresh_token
-    let athleteId = athleteData.athlete.id
-    if (expiryTime < Date.now()) {
-        let newAccessTokenDetails = await refreshExpiredAccessToken(refreshToken)
-        let updatedAthleteAccessToken = await updateAccessToken(newAccessTokenDetails, athleteId)
-        console.log(updatedAthleteAccessToken)
-    } else {
-        console.log(expiryTime)
+    if (athleteData !== process.env.NO_SESSION_ERROR) {
+        let expiryTime = new Date(athleteData.expires_at * 1000);
+        let refreshToken = athleteData.refresh_token
+        let athleteId = athleteData.athlete.id
+        if (expiryTime < Date.now()) {
+            let newAccessTokenDetails = await refreshExpiredAccessToken(refreshToken)
+            let updatedAthleteAccessToken = await updateAccessToken(newAccessTokenDetails, athleteId)
+            console.log(updatedAthleteAccessToken)
+        } else {
+            console.log(expiryTime)
+        }
     }
+
 }
 
 const exchangeAuthTokenForAccess = async (authCode) => {
@@ -132,7 +136,7 @@ const loadUserSession = async (sessionId) => {
     }
 }
 
-const saveUserData = async (athleteData) => {
+const saveAthleteData = async (athleteData) => {
     if (athleteData.access_token !== null && athleteData !== 400) {
         let savedAthleteData = await mongo.saveAthleteData(athleteData);
         return savedAthleteData;
@@ -140,15 +144,15 @@ const saveUserData = async (athleteData) => {
         console.log('error saving user data');
         return "error saving user data";
     }
-    
+
 }
 
 const loadUserData = async (athleteId) => {
     if (athleteId == process.env.NO_SESSION_ERROR) {
-        return 303;
+        return process.env.NO_SESSION_ERROR;
     } else {
         let userData = await mongo.getAthleteData(athleteId);
-        
+
         return userData;
     }
 }

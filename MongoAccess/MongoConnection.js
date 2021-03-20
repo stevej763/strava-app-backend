@@ -14,7 +14,6 @@ class Mongo {
 
     async saveSession(sessionId, athleteId) {
         console.log('saving session ID')
-        console.log(athleteId)
         let savedSession = await this.db.collection("sessions").insertOne({ '_id': sessionId, 'athlete_id': athleteId, 'created_at': new Date()})
         console.log('saved session ID')
         return savedSession.ops[0];

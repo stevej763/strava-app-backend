@@ -13,8 +13,6 @@ startMongo();
 app.use('/api/authentication', authentication)
 app.use(cors());
 
-
-
 app.get('/', (req, res) => {
     res.send('Welcome to the Strava Dashboard API!')
 })
