@@ -29,12 +29,21 @@ class Mongo {
 
     async getSession(sessionId) {
         console.log("loading existing session")
-        const exisitngSession = await this.db.collection("sessions").findOne({
+        let exisitngSession = await this.db.collection("sessions").findOne({
             '_id': sessionId
         })
         console.log(exisitngSession)
         console.log("loaded existing session")
         return exisitngSession;
+    }
+
+    async getAthleteIdForSession(sessionId) {
+        console.log('retrieving athlete ID for', sessionId)
+        let session = await this.db.collection("sessions").findOne({
+            '_id': sessionId
+        })
+        console.log('athlete id for session', session.athlete_id)
+        return session.athlete_id
     }
 
     async saveAthleteData(athleteData) {
@@ -56,6 +65,20 @@ class Mongo {
         }
         
         return athleteData;
+    }
+
+    async getAthleteAccessToken(athleteId) {
+        console.log('retrieving athlete access token')
+        const athleteData = await this.db.collection("athleteData").findOne({
+            'athlete.id': parseInt(athleteId)
+        })
+        if (athleteData == null) {
+            console.log('no existing athlete data found')
+        } else {
+            console.log('found existing athlete access token')
+        }
+        
+        return athleteData.access_token; 
     }
 
     async updateAthleteAccessCodeData(newAccessTokenDetails, athleteId) {

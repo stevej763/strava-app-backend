@@ -5,12 +5,14 @@ const app = express();
 
 const mongo = require('./MongoAccess/MongoConnection');
 const authentication = require('./routes/authentication')
+const athleteData = require('./routes/athleteData')
 
 startMongo = async () => await mongo.connectToDatabase();
 startMongo();
 
 
 app.use('/api/authentication', authentication)
+app.use('/api/athlete', athleteData)
 app.use(cors());
 
 app.get('/', (req, res) => {
@@ -22,6 +24,7 @@ app.get('/endpoints', (req, res) => {
         {'login':'localhost:4000/api/authentication/login'},
         {'exisiting session login':'localhost:4000/api/authentication/login/:id'},
         {'strava-auth-response':'localhost:4000/api/strava-auth-response'},
+        {'athlete stats':'localhost:4000/api/athlete/stats/:id'}
         ])
 })
 
