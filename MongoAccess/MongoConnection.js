@@ -17,21 +17,21 @@ class Mongo {
         console.log(athleteId)
         let savedSession = await this.db.collection("sessions").insertOne({ '_id': sessionId, 'athlete_id': athleteId})
         console.log('saved session ID')
-        return savedSession
+        return savedSession.ops[0];
     }
 
     async getSession(sessionId) {
         console.log("loading session")
         const exisitngSession = await this.db.collection("sessions").findOne({'_id': sessionId})
         console.log("loaded session")
-        return exisitngSession
+        return exisitngSession.ops[0];
     }
 
     async saveUser(athleteData) {
         console.log('saving athlete data')
         let savedAthleteData = await this.db.collection("users").insertOne(athleteData)
         console.log('saved athlete data')
-        return savedAthleteData
+        return savedAthleteData.ops[0];
     }
 
     async getUser(athleteId) {
@@ -39,7 +39,7 @@ class Mongo {
         const athleteData = await this.db.collection("athleteData").findOne({ 'athlete.id': parseInt(athleteId)})
         console.log(athleteData)
         console.log('loaded athlete data')
-        return athleteData
+        return athleteData.ops[0];
     }
 }
 

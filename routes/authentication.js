@@ -27,7 +27,6 @@ router.get('/login', (req, res) => {
 })
 
 router.get('/strava-auth-response', async (req, res) => {
-
     scope = req.query.scope
     authCode = req.query.code
     if (recievedExpectedScope(scope)) {
@@ -66,20 +65,21 @@ const exchangeAuthTokenForAccess = async (authCode) => {
         });
         return response.data;
     } catch (error) {
-        return error;
+        console.log('Error ', error.response.statusText)
+        return error.response.status;
     };
 }
 
-
 const saveUserSession = async (stravaUserData) => {
-    if (stravaUserData.access_token !== null) {
+    if (stravaUserData.access_token !== null && stravaUserData !== 400) {
         let sessionId = uuid();
         console.log(stravaUserData)
         let savedSession = await mongo.saveSession(sessionId, stravaUserData.athlete.id);
         console.log(sessionId)
         return savedSession
     } else {
-        throw error;
+        console.log('error saving user session')
+        return 'error saving user session'
     }
 
 }
@@ -94,11 +94,12 @@ const loadUserSession = async (sessionId) => {
 }
 
 const saveUserData = async (athleteData) => {
-    if (athleteData.access_token !== null) {
+    if (athleteData.access_token !== null && athleteData !== 400) {
         let savedAthleteData = await mongo.saveUser(athleteData)
         return savedAthleteData;
     } else {
-        return "error"
+        console.log('error saving user data')
+        return "error saving user data"
     }
     
 }
