@@ -20,11 +20,11 @@ router.get('/login/:sessionId', async (req, res) => {
     } else {
         res.send(athleteData)
     }
-})
+});
 
 router.get('/login', (req, res) => {
     res.redirect(stravaAuthUrl)
-})
+});
 
 router.get('/strava-auth-response', async (req, res) => {
     scope = req.query.scope
@@ -39,8 +39,8 @@ router.get('/strava-auth-response', async (req, res) => {
         ])
     } else {
         res.send("Scope for app was not given")
-    }
-})
+    };
+});
 
 const recievedExpectedScope = (scope) => {
     result = false
@@ -48,7 +48,7 @@ const recievedExpectedScope = (scope) => {
         result = true;
     }
     return result;
-}
+};
 
 const checkAccessToken = async (athleteData) => {
     if (athleteData !== process.env.NO_SESSION_ERROR) {
@@ -65,7 +65,7 @@ const checkAccessToken = async (athleteData) => {
             return false
         }
     }
-}
+};
 
 const exchangeAuthTokenForAccessToken = async (authCode) => {
     try {
@@ -84,7 +84,7 @@ const exchangeAuthTokenForAccessToken = async (authCode) => {
         console.log('Error exchanging auth token', error.response.statusText)
         return error.response.status;
     };
-}
+};
 
 const refreshExpiredAccessToken = async (refreshToken) => {
     try {
@@ -103,24 +103,24 @@ const refreshExpiredAccessToken = async (refreshToken) => {
         console.log('Error retrieving refresh token', error)
         return error.response.status;
     };
-}
+};
 
 const updateAccessToken = async (newAccessToken, athleteData) => {
     let updatedAccessToken = await mongo.updateAthleteAccessCodeData(newAccessToken, athleteData)
-    return updatedAccessToken
-}
+    return updatedAccessToken;
+};
 
 const saveUserSession = async (stravaUserData) => {
     if (stravaUserData.access_token !== null && stravaUserData !== 400) {
         let sessionId = uuid();
         let savedSession = await mongo.saveSession(sessionId, stravaUserData.athlete.id);
         console.log(sessionId)
-        return savedSession
+        return savedSession;
     } else {
         console.log('error saving user session')
         return 'error saving user session'
-    }
-}
+    };
+};
 
 const loadUserSession = async (sessionId) => {
     let session = await mongo.getSession(sessionId)
@@ -128,8 +128,8 @@ const loadUserSession = async (sessionId) => {
         return session.athlete_id;
     } else {
         return process.env.NO_SESSION_ERROR;
-    }
-}
+    };
+};
 
 const saveAthleteData = async (athleteData) => {
     if (athleteData.access_token !== null && athleteData !== 400) {
@@ -138,17 +138,17 @@ const saveAthleteData = async (athleteData) => {
     } else {
         console.log('error saving user data');
         return "error saving user data";
-    }
-}
+    };
+};
 
 const existingUser = async (athleteData) => {
     let existingData = await loadAthleteData(athleteData.athlete.id)
     if(existingData == null) {
-        return false
+        return false;
     } else {
-        return true
-    }
-}
+        return true;
+    };
+};
 
 const loadAthleteData = async (athleteId) => {
     if (athleteId == process.env.NO_SESSION_ERROR) {
@@ -156,7 +156,7 @@ const loadAthleteData = async (athleteId) => {
     } else {
         let userData = await mongo.getAthleteData(athleteId);
         return userData;
-    }
-}
+    };
+};
 
 module.exports = router
