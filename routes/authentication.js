@@ -14,11 +14,12 @@ const stravaAuthUrl = `https://www.strava.com/oauth/authorize?client_id=${proces
 router.get('/login/:sessionId', async (req, res) => {
     let recievedSessionId = req.params.sessionId
     let athleteId = await loadUserSession(recievedSessionId);
-    let userData = await loadUserData(athleteId);
-    if (userData == 'redirect to strava') {
+    let athleteData = await loadUserData(athleteId);
+    await checkAccessToken(athleteData)
+    if (athleteData == 303) {
         res.redirect(stravaAuthUrl)
-    } else {
-        res.send(userData)
+    }else {
+        res.send(athleteData)
     }
 })
 
@@ -39,7 +40,7 @@ router.get('/strava-auth-response', async (req, res) => {
         ])
 
     } else {
-        res.send( "Scope for app was not given")
+        res.send("Scope for app was not given")
     }
 })
 
@@ -49,6 +50,19 @@ const recievedExpectedScope = (scope) => {
         result = true;
     }
     return result;
+}
+
+const checkAccessToken = async (athleteData) => {
+    let expiryTime = new Date(athleteData.expires_at*1000);
+    let refreshToken = athleteData.refresh_token
+    let athleteId = athleteData.athlete.id
+    if (expiryTime < Date.now()) {
+        let newAccessTokenDetails = await refreshExpiredAccessToken(refreshToken)
+        let updatedAthleteAccessToken = await updateAccessToken(newAccessTokenDetails, athleteId)
+        console.log(updatedAthleteAccessToken)
+    } else {
+        console.log(expiryTime)
+    }
 }
 
 const exchangeAuthTokenForAccess = async (authCode) => {
@@ -65,10 +79,35 @@ const exchangeAuthTokenForAccess = async (authCode) => {
         });
         return response.data;
     } catch (error) {
-        console.log('Error ', error.response.statusText)
+        console.log('Error exchanging auth token', error.response.statusText)
         return error.response.status;
     };
 }
+
+const refreshExpiredAccessToken = async (refreshToken) => {
+    try {
+        const response = await axios({
+            method: 'post',
+            url: 'https://www.strava.com/oauth/token',
+            params: {
+                client_id: process.env.CLIENT_ID,
+                client_secret: process.env.CLIENT_SECRET,
+                grant_type: 'refresh_token',
+                refresh_token: refreshToken
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.log('Error retrieving refresh token', error)
+        return error.response.status;
+    };
+}
+
+const updateAccessToken = async (newAccessToken, athleteData) => {
+    let updatedAccessToken = await mongo.updateAthleteData(newAccessToken, athleteData)
+    return updatedAccessToken
+}
+
 
 const saveUserSession = async (stravaUserData) => {
     if (stravaUserData.access_token !== null && stravaUserData !== 400) {
@@ -95,21 +134,22 @@ const loadUserSession = async (sessionId) => {
 
 const saveUserData = async (athleteData) => {
     if (athleteData.access_token !== null && athleteData !== 400) {
-        let savedAthleteData = await mongo.saveUser(athleteData)
+        let savedAthleteData = await mongo.saveAthleteData(athleteData);
         return savedAthleteData;
     } else {
-        console.log('error saving user data')
-        return "error saving user data"
+        console.log('error saving user data');
+        return "error saving user data";
     }
     
 }
 
 const loadUserData = async (athleteId) => {
     if (athleteId == process.env.NO_SESSION_ERROR) {
-        return 'redirect to strava'
+        return 303;
     } else {
-        let userData = await mongo.getUser(athleteId)
-        return userData
+        let userData = await mongo.getAthleteData(athleteId);
+        
+        return userData;
     }
 }
 
