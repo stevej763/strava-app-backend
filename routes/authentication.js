@@ -1,5 +1,4 @@
 require('dotenv').config();
-
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
@@ -8,12 +7,14 @@ const mongo = require('../MongoAccess/MongoConnection');
 
 const stravaAuthUrl = `https://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=${process.env.WEBSERVER}:${process.env.PORT}/api/authentication/strava-auth-response&approval_prompt=force&scope=read_all,activity:read_all,profile:read_all`
 
-
 router.get('/login/:sessionId', async (req, res) => {
     let recievedSessionId = req.params.sessionId
     let athleteId = await loadUserSession(recievedSessionId);
-    let athleteData = await loadUserData(athleteId);
-    await checkAccessToken(athleteData)
+    let athleteData = await loadAthleteData(athleteId);
+    let expired = await checkAccessToken(athleteData)
+    if(expired) {
+        athleteData = await loadAthleteData(athleteId);
+    }
     if (athleteData == process.env.NO_SESSION_ERROR) {
         res.redirect(stravaAuthUrl)
     } else {
@@ -29,17 +30,13 @@ router.get('/strava-auth-response', async (req, res) => {
     scope = req.query.scope
     authCode = req.query.code
     if (recievedExpectedScope(scope)) {
-        let athleteData = await exchangeAuthTokenForAccess(authCode)
+        let athleteData = await exchangeAuthTokenForAccessToken(authCode)
         let savedSessionId = await saveUserSession(athleteData);
         let savedAthleteData = await saveAthleteData(athleteData)
-        res.send([{
-                savedSessionId
-            },
-            {
-                savedAthleteData: savedAthleteData
-            }
+        res.send([
+            { savedSessionId },
+            { savedAthleteData: savedAthleteData}
         ])
-
     } else {
         res.send("Scope for app was not given")
     }
@@ -62,14 +59,15 @@ const checkAccessToken = async (athleteData) => {
             let newAccessTokenDetails = await refreshExpiredAccessToken(refreshToken)
             let updatedAthleteAccessToken = await updateAccessToken(newAccessTokenDetails, athleteId)
             console.log(updatedAthleteAccessToken)
+            return true
         } else {
-            console.log(expiryTime)
+            console.log("access expiry time:", expiryTime)
+            return false
         }
     }
-
 }
 
-const exchangeAuthTokenForAccess = async (authCode) => {
+const exchangeAuthTokenForAccessToken = async (authCode) => {
     try {
         const response = await axios({
             method: 'post',
@@ -108,15 +106,13 @@ const refreshExpiredAccessToken = async (refreshToken) => {
 }
 
 const updateAccessToken = async (newAccessToken, athleteData) => {
-    let updatedAccessToken = await mongo.updateAthleteData(newAccessToken, athleteData)
+    let updatedAccessToken = await mongo.updateAthleteAccessCodeData(newAccessToken, athleteData)
     return updatedAccessToken
 }
-
 
 const saveUserSession = async (stravaUserData) => {
     if (stravaUserData.access_token !== null && stravaUserData !== 400) {
         let sessionId = uuid();
-        console.log(stravaUserData)
         let savedSession = await mongo.saveSession(sessionId, stravaUserData.athlete.id);
         console.log(sessionId)
         return savedSession
@@ -124,7 +120,6 @@ const saveUserSession = async (stravaUserData) => {
         console.log('error saving user session')
         return 'error saving user session'
     }
-
 }
 
 const loadUserSession = async (sessionId) => {
@@ -138,21 +133,28 @@ const loadUserSession = async (sessionId) => {
 
 const saveAthleteData = async (athleteData) => {
     if (athleteData.access_token !== null && athleteData !== 400) {
-        let savedAthleteData = await mongo.saveAthleteData(athleteData);
-        return savedAthleteData;
+        let updatedAthleteData = await existingUser(athleteData) ? await mongo.updateAthleteData(athleteData) : mongo.saveAthleteData(athleteData);
+        return updatedAthleteData;
     } else {
         console.log('error saving user data');
         return "error saving user data";
     }
-
 }
 
-const loadUserData = async (athleteId) => {
+const existingUser = async (athleteData) => {
+    let existingData = await loadAthleteData(athleteData.athlete.id)
+    if(existingData == null) {
+        return false
+    } else {
+        return true
+    }
+}
+
+const loadAthleteData = async (athleteId) => {
     if (athleteId == process.env.NO_SESSION_ERROR) {
         return process.env.NO_SESSION_ERROR;
     } else {
         let userData = await mongo.getAthleteData(athleteId);
-
         return userData;
     }
 }
