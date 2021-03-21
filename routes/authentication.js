@@ -42,7 +42,8 @@ router.get('/strava-auth-response/:sessionId', async (req, res) => {
         await saveUserSession(athleteData, recievedSessionId);
         await saveAthleteData(athleteData)
         console.log('redirecting to frontend')
-        res.redirect(`${process.env.REACT_ADDRESS}`)
+        console.log(process.env.REACT_ADDRESS)
+        res.redirect(process.env.REACT_ADDRESS)
     } else {
         res.send("Scope for app was not given")
     };
