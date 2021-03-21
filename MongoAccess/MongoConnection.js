@@ -2,10 +2,12 @@ require('dotenv').config();
 const {
     MongoClient
 } = require('mongodb');
+const uri = "mongodb+srv://admin:Test123@cluster0.mj0i4.mongodb.net/strava-dashboard?retryWrites=true&w=majority";
 
 class Mongo {
     constructor() {
-        this.client = new MongoClient(process.env.DB_HOST, {
+        this.client = new MongoClient(uri, {
+            useNewUrlParser: true,
             useUnifiedTopology: true
         });
     }
@@ -63,7 +65,7 @@ class Mongo {
         } else {
             console.log('found existing athlete data')
         }
-        
+
         return athleteData;
     }
 
@@ -77,8 +79,8 @@ class Mongo {
         } else {
             console.log('found existing athlete access token')
         }
-        
-        return athleteData.access_token; 
+
+        return athleteData.access_token;
     }
 
     async updateAthleteAccessCodeData(newAccessTokenDetails, athleteId) {
