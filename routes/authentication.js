@@ -43,7 +43,7 @@ router.get('/strava-auth-response/:sessionId', async (req, res) => {
         await saveAthleteData(athleteData)
         console.log('redirecting to frontend')
         console.log(process.env.REACT_ADDRESS)
-        res.redirect('https://running-dashboard-test.herokuapp.com')
+        res.redirect(process.env.REACT_ADDRESS)
     } else {
         res.send("Scope for app was not given")
     };
