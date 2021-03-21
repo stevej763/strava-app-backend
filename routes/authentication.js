@@ -21,7 +21,7 @@ router.get('/login/:sessionId', async (req, res) => {
     } else if (athleteData == process.env.NEW_USER) {
         console.log('sending strava auth url')
         console.log(`${stravaAuthUrl}&redirect_uri=${process.env.WEBSERVER}:${process.env.PORT}/api/authentication/strava-auth-response/${recievedSessionId}`)
-        res.status(200).send(`${stravaAuthUrl}&redirect_uri=${process.env.WEBSERVER}:${process.env.PORT}/api/authentication/strava-auth-response/${recievedSessionId}`)
+        res.status(200).send(`${stravaAuthUrl}&redirect_uri=${process.env.WEBSERVER}/api/authentication/strava-auth-response/${recievedSessionId}`)
     } else {
         res.status(200).send(
             {'user': {
