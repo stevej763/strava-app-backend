@@ -4,7 +4,7 @@
   "description": "The NodeJS backend server for the strava dashboard",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
