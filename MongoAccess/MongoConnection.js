@@ -34,7 +34,6 @@ class Mongo {
         let exisitngSession = await this.db.collection("sessions").findOne({
             '_id': sessionId
         })
-        console.log(exisitngSession)
         console.log("loaded existing session")
         return exisitngSession;
     }
