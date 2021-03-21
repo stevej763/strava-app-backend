@@ -20,7 +20,6 @@ router.get('/login/:sessionId', async (req, res) => {
         res.send('no valid UUID')
     } else if (athleteData == process.env.NEW_USER) {
         console.log('sending strava auth url')
-        console.log(`${stravaAuthUrl}&redirect_uri=${process.env.WEBSERVER}:${process.env.PORT}/api/authentication/strava-auth-response/${recievedSessionId}`)
         res.status(200).send(`${stravaAuthUrl}&redirect_uri=${process.env.WEBSERVER}/api/authentication/strava-auth-response/${recievedSessionId}`)
     } else {
         res.status(200).send(
@@ -48,7 +47,7 @@ router.get('/strava-auth-response/:sessionId', async (req, res) => {
 
 router.get('*', (req, res) => {
     res.status(404).send('page does not exist');
-  });
+});
 
 const recievedExpectedScope = (scope) => {
     result = false
