@@ -136,8 +136,10 @@ const loadUserSession = async (sessionId) => {
     if (session !== null) {
         return session.athlete_id;
     } else if (uuidValidate(sessionId)) {
+        console.log("this is a new user")
         return process.env.NEW_USER
     } else {
+        console.log('not a valid UUID')
         return process.env.NO_SESSION_ERROR;
     };
 };
