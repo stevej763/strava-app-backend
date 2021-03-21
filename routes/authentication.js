@@ -3,9 +3,10 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const uuid = require('uuid').v4;
+const uuidValidate = require('uuid').validate;
 const mongo = require('../MongoAccess/MongoConnection');
 
-const stravaAuthUrl = `https://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=${process.env.WEBSERVER}:${process.env.PORT}/api/authentication/strava-auth-response&approval_prompt=force&scope=read_all,activity:read_all,profile:read_all`
+const stravaAuthUrl = `https://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&approval_prompt=force&scope=read_all,activity:read_all,profile:read_all`
 
 router.get('/login/:sessionId', async (req, res) => {
     let recievedSessionId = req.params.sessionId
@@ -16,31 +17,38 @@ router.get('/login/:sessionId', async (req, res) => {
         athleteData = await loadAthleteData(athleteId);
     }
     if (athleteData == process.env.NO_SESSION_ERROR) {
-        res.redirect(stravaAuthUrl)
+        res.send('no valid UUID')
+    } else if (athleteData == process.env.NEW_USER) {
+        console.log('sending strava auth url')
+        console.log(`${stravaAuthUrl}&redirect_uri=${process.env.WEBSERVER}:${process.env.PORT}/api/authentication/strava-auth-response/${recievedSessionId}`)
+        res.status(200).send(`${stravaAuthUrl}&redirect_uri=${process.env.WEBSERVER}:${process.env.PORT}/api/authentication/strava-auth-response/${recievedSessionId}`)
     } else {
-        res.send(athleteData)
+        res.status(200).send(
+            {'user': {
+                'existing_user': true,
+                'athlete': athleteData.athlete
+            }}
+            )
     }
 });
 
-router.get('/login', (req, res) => {
-    res.redirect(stravaAuthUrl)
-});
-
-router.get('/strava-auth-response', async (req, res) => {
-    scope = req.query.scope
-    authCode = req.query.code
+router.get('/strava-auth-response/:sessionId', async (req, res) => {
+    let recievedSessionId = req.params.sessionId
+    let scope = req.query.scope
+    let authCode = req.query.code
     if (recievedExpectedScope(scope)) {
         let athleteData = await exchangeAuthTokenForAccessToken(authCode)
-        let savedSessionId = await saveUserSession(athleteData);
-        let savedAthleteData = await saveAthleteData(athleteData)
-        res.send([
-            { savedSessionId },
-            { savedAthleteData: savedAthleteData}
-        ])
+        await saveUserSession(athleteData, recievedSessionId);
+        await saveAthleteData(athleteData)
+        res.redirect(`http://localhost:${process.env.REACT_PORT}`)
     } else {
         res.send("Scope for app was not given")
     };
 });
+
+router.get('*', (req, res) => {
+    res.status(404).send('page does not exist');
+  });
 
 const recievedExpectedScope = (scope) => {
     result = false
@@ -51,7 +59,7 @@ const recievedExpectedScope = (scope) => {
 };
 
 const checkAccessToken = async (athleteData) => {
-    if (athleteData !== process.env.NO_SESSION_ERROR) {
+    if (athleteData !== process.env.NO_SESSION_ERROR && athleteData !== process.env.NEW_USER) {
         let expiryTime = new Date(athleteData.expires_at * 1000);
         let refreshToken = athleteData.refresh_token
         let athleteId = athleteData.athlete.id
@@ -64,6 +72,8 @@ const checkAccessToken = async (athleteData) => {
             console.log("access expiry time:", expiryTime)
             return false
         }
+    } else {
+        return false
     }
 };
 
@@ -110,9 +120,8 @@ const updateAccessToken = async (newAccessToken, athleteData) => {
     return updatedAccessToken;
 };
 
-const saveUserSession = async (stravaUserData) => {
+const saveUserSession = async (stravaUserData, sessionId) => {
     if (stravaUserData.access_token !== null && stravaUserData !== 400) {
-        let sessionId = uuid();
         let savedSession = await mongo.saveSession(sessionId, stravaUserData.athlete.id);
         console.log(sessionId)
         return savedSession;
@@ -126,6 +135,8 @@ const loadUserSession = async (sessionId) => {
     let session = await mongo.getSession(sessionId)
     if (session !== null) {
         return session.athlete_id;
+    } else if (uuidValidate(sessionId)) {
+        return process.env.NEW_USER
     } else {
         return process.env.NO_SESSION_ERROR;
     };
@@ -152,11 +163,14 @@ const existingUser = async (athleteData) => {
 
 const loadAthleteData = async (athleteId) => {
     if (athleteId == process.env.NO_SESSION_ERROR) {
-        return process.env.NO_SESSION_ERROR;
+        return athleteId;
+    } else if (athleteId == process.env.NEW_USER) {
+        return athleteId;
     } else {
         let userData = await mongo.getAthleteData(athleteId);
         return userData;
     };
 };
+
 
 module.exports = router

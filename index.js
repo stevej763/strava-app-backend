@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
+
 const mongo = require('./MongoAccess/MongoConnection');
 const authentication = require('./routes/authentication')
 const athleteData = require('./routes/athleteData')
@@ -27,6 +28,10 @@ app.get('/endpoints', (req, res) => {
         {'athlete stats':'localhost:4000/api/athlete/stats/:id'}
         ])
 })
+
+app.get('*', (req, res) => {
+    res.status(404).send('what???');
+  });
 
 app.listen(process.env.PORT, () => {
     console.log(`Listening on port ${process.env.PORT}`);

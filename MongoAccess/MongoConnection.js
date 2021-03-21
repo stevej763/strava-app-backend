@@ -82,7 +82,7 @@ class Mongo {
     }
 
     async updateAthleteAccessCodeData(newAccessTokenDetails, athleteId) {
-        console.log('updating athlete data (access code)')
+        console.log('updating expired access code)')
         const updatedAthleteData = await this.db.collection("athleteData").updateOne({
             'athlete.id': parseInt(athleteId)
         }, {
@@ -93,7 +93,7 @@ class Mongo {
                 "access_token": newAccessTokenDetails.access_token
             }
         })
-        console.log('Updated athlete data')
+        console.log('Updated access code')
         return updatedAthleteData
     }
 
