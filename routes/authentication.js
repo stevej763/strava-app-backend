@@ -36,6 +36,7 @@ router.get('/strava-auth-response/:sessionId', async (req, res) => {
     let recievedSessionId = req.params.sessionId
     let scope = req.query.scope
     let authCode = req.query.code
+    console.log(req)
     if (recievedExpectedScope(scope)) {
         let athleteData = await exchangeAuthTokenForAccessToken(authCode)
         await saveUserSession(athleteData, recievedSessionId);
